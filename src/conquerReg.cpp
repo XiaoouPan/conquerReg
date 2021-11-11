@@ -129,23 +129,33 @@ arma::vec cmptLambdaLasso(const double lambda, const int p) {
 }
 
 // Loss and gradient, update gradient, return loss
-// [[Rcpp::export]]
-double lossL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double n1) {
-  arma::vec res = Z * beta - Y;
-  return 0.5 * arma::mean(arma::square(res));
+double lossL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double n1, const double tau) {
+  arma::vec res = Y - Z * beta;
+  double rst = 0.0;
+  for (int i = 0; i < Y.size(); i++) {
+    rst += (res(i) > 0) ? (tau * res(i) * res(i)) : ((1 - tau) * res(i) * res(i));
+  }
+  return 0.5 * n1 * rst;
 }
 
 // [[Rcpp::export]]
-double updateL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, arma::vec& grad, const double n1) {
-  arma::vec res = Z * beta - Y;
-  grad = n1 * Z.t() * res;
-  return 0.5 * arma::mean(arma::square(res));
+double updateL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, arma::vec& grad, const double n1, const double tau) {
+  arma::vec res = Y - Z * beta;
+  double rst = 0.0;
+  grad = arma::zeros(grad.size());
+  for (int i = 0; i < Y.size(); i++) {
+    double temp = res(i) > 0 ? tau : (1 - tau);
+    grad -= temp * res(i) * Z.row(i).t();
+    rst += temp * res(i) * res(i);
+  }
+  grad *= n1;
+  return 0.5 * n1 * rst;
 }
 
 // [[Rcpp::export]]
-double lossGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double tau, const double h, const double h1, const double h2) {
-  arma::vec res = Z * beta - Y;
-  arma::vec temp = 0.39894 * h  * arma::exp(-0.5 * h2 * arma::square(res)) - tau * res + res % arma::normcdf(h1 * res);
+double lossGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double h, const double h1, const double h2) {
+  arma::vec res = Y - Z * beta;
+  arma::vec temp = 0.3989423 * h  * arma::exp(-0.5 * h2 * arma::square(res)) + 0.5 * res - res % arma::normcdf(-h1 * res);
   return arma::mean(temp);
 }
 
