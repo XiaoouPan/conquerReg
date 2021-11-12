@@ -121,13 +121,6 @@ arma::vec softThresh(const arma::vec& x, const arma::vec& lambda, const int p) {
   return arma::sign(x) % arma::max(arma::abs(x) - lambda, arma::zeros(p + 1));
 }
 
-// [[Rcpp::export]]
-arma::vec cmptLambdaLasso(const double lambda, const int p) {
-  arma::vec rst = lambda * arma::ones(p + 1);
-  rst(0) = 0;
-  return rst;
-}
-
 // Loss and gradient, update gradient, return loss
 double lossL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double n1, const double tau) {
   arma::vec res = Y - Z * beta;
