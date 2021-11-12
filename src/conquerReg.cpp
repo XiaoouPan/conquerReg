@@ -121,6 +121,13 @@ arma::vec softThresh(const arma::vec& x, const arma::vec& lambda, const int p) {
   return arma::sign(x) % arma::max(arma::abs(x) - lambda, arma::zeros(p + 1));
 }
 
+// [[Rcpp::export]]
+arma::vec cmptLambdaLasso(const double lambda, const int p) {
+  arma::vec rst = lambda * arma::ones(p + 1);
+  rst(0) = 0;
+  return rst;
+}
+
 // Loss and gradient, update gradient, return loss
 double lossL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double n1, const double tau) {
   arma::vec res = Y - Z * beta;
@@ -153,12 +160,13 @@ double lossGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, 
 }
 
 // [[Rcpp::export]]
-double updateGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, arma::vec& grad, const double tau, const double n1, const double h, 
-                   const double h1, const double h2) {
-  arma::vec res = Z * beta - Y;
-  arma::vec der = arma::normcdf(res * h1) - tau;
-  grad = n1 * Z.t() * der;
-  arma::vec temp = 0.39894 * h  * arma::exp(-0.5 * h2 * arma::square(res)) - tau * res + res % arma::normcdf(h1 * res);
+double updateGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, arma::vec& grad, arma::vec& gradReal, const double tau, 
+                   const double n1, const double h, const double h1, const double h2) {
+  arma::vec res = Y - Z * beta;
+  arma::vec der = arma::normcdf(-h1 * res);
+  gradReal = n1 * Z.t() * (der - tau);
+  grad = n1 * Z.t() * (der - 0.5);
+  arma::vec temp = 0.3989423 * h  * arma::exp(-0.5 * h2 * arma::square(res)) + 0.5 * res - res % arma::normcdf(-h1 * res);
   return arma::mean(temp);
 }
 
