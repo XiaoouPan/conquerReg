@@ -121,13 +121,6 @@ arma::vec softThresh(const arma::vec& x, const arma::vec& lambda, const int p) {
   return arma::sign(x) % arma::max(arma::abs(x) - lambda, arma::zeros(p + 1));
 }
 
-// [[Rcpp::export]]
-arma::vec cmptLambdaLasso(const double lambda, const int p) {
-  arma::vec rst = lambda * arma::ones(p + 1);
-  rst(0) = 0;
-  return rst;
-}
-
 // Loss and gradient, update gradient, return loss
 double lossL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double n1, const double tau) {
   arma::vec res = Y - Z * beta;
@@ -172,17 +165,17 @@ double updateGauss(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta
 
 // LAMM, update beta, return phi
 // [[Rcpp::export]]
-double lammL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, arma::vec& beta, const double phi, const double gamma, const int p, 
-              const double n1) {
+double lammL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, arma::vec& beta, const double tau, const double phi, const double gamma, 
+              const int p, const double n1) {
   double phiNew = phi;
   arma::vec betaNew(p + 1);
   arma::vec grad(p + 1);
-  double loss = updateL2(Z, Y, beta, grad, n1);
+  double loss = updateL2(Z, Y, beta, grad, n1, tau);
   while (true) {
     arma::vec first = beta - grad / phiNew;
     arma::vec second = Lambda / phiNew;
     betaNew = softThresh(first, second, p);
-    double fVal = lossL2(Z, Y, betaNew, n1);
+    double fVal = lossL2(Z, Y, betaNew, n1, tau);
     arma::vec diff = betaNew - beta;
     double psiVal = loss + arma::as_scalar(grad.t() * diff) + 0.5 * phiNew * arma::as_scalar(diff.t() * diff);
     if (fVal <= psiVal) {
@@ -195,17 +188,18 @@ double lammL2(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, a
 }
 
 // [[Rcpp::export]]
-double lammSq(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, arma::vec& beta, const double phi, const double tau, 
-              const double gamma, const int p, const double h, const double n1, const double h1, const double h2) {
+double lammGuassLasso(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, arma::vec& beta, const double tau, const double phi, 
+                      const double gamma, const int p, const double h, const double n1, const double h1, const double h2) {
   double phiNew = phi;
   arma::vec betaNew(p + 1);
   arma::vec grad(p + 1);
-  double loss = updateGauss(Z, Y, beta, grad, tau, n1, h, h1, h2);
+  arma::vec gradReal(p + 1);
+  double loss = updateGauss(Z, Y, beta, grad, gradReal, tau, n1, h, h1, h2);
   while (true) {
-    arma::vec first = beta - grad / phiNew;
+    arma::vec first = beta - gradReal / phiNew;
     arma::vec second = Lambda / phiNew;
     betaNew = softThresh(first, second, p);
-    double fVal = lossGauss(Z, Y, betaNew, tau, h, h1, h2);
+    double fVal = lossGauss(Z, Y, betaNew, h, h1, h2);
     arma::vec diff = betaNew - beta;
     double psiVal = loss + arma::as_scalar(grad.t() * diff) + 0.5 * phiNew * arma::as_scalar(diff.t() * diff);
     if (fVal <= psiVal) {
