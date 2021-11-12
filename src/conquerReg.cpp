@@ -212,7 +212,7 @@ double lammGuassLasso(const arma::mat& Z, const arma::vec& Y, const arma::vec& L
 }
 
 // [[Rcpp::export]]
-arma::vec lasso(const arma::mat& Z, const arma::vec& Y, const double lambda, const double tau, const int p, const double n1, const double phi0 = 0.001, 
+arma::vec lasso(const arma::mat& Z, const arma::vec& Y, const double lambda, const double tau, const int p, const double n1, const double phi0 = 0.01, 
                 const double gamma = 1.2, const double epsilon = 0.001, const int iteMax = 500) {
   arma::vec beta = arma::zeros(p + 1);
   arma::vec betaNew = arma::zeros(p + 1);
@@ -233,17 +233,20 @@ arma::vec lasso(const arma::mat& Z, const arma::vec& Y, const double lambda, con
 }
 
 // [[Rcpp::export]]
-arma::vec sqrLasso(const arma::mat& Z, const arma::vec& Y, const double lambda, const double tau, const int p, const double n1, 
-                   const double h, const double h1, const double h2, const double phi0 = 0.01, const double gamma = 1.5, const double epsilon = 0.001, 
-                   const int iteMax = 500) {
-  arma::vec beta = lasso(Z, Y, lambda, p, n1, phi0, gamma, epsilon, iteMax);
+arma::vec gaussLasso(const arma::mat& Z, const arma::vec& Y, const double lambda, const double tau, const int p, const double n1, const double h, 
+                     const double h1, const double h2, const double phi0 = 0.01, const double gamma = 1.2, const double epsilon = 0.001, 
+                     const int iteMax = 500) {
+  arma::vec beta = lasso(Z, Y, lambda, tau, p, n1, phi0, gamma, epsilon, iteMax);
+  arma::vec quant = {tau};
+  beta(0) = arma::as_scalar(arma::quantile(Y - Z.cols(1, p) * beta.rows(1, p), quant));
   arma::vec betaNew = beta;
-  arma::vec Lambda = cmptLambdaLasso(lambda, p);
+  arma::vec Lambda = lambda * arma::ones(p + 1);
+  Lambda(0) = 0;
   double phi = phi0;
   int ite = 0;
   while (ite <= iteMax) {
     ite++;
-    phi = lammSq(Z, Y, Lambda, betaNew, phi, tau, gamma, p, h, n1, h1, h2);
+    phi = lammGuassLasso(Z, Y, Lambda, betaNew, tau, phi, gamma, p, h, n1, h1, h2);
     phi = std::max(phi0, phi / gamma);
     if (arma::norm(betaNew - beta, "inf") <= epsilon) {
       break;
@@ -254,28 +257,8 @@ arma::vec sqrLasso(const arma::mat& Z, const arma::vec& Y, const double lambda, 
 }
 
 // [[Rcpp::export]]
-arma::vec sqrLassoIni(const arma::mat& Z, const arma::vec& Y, const double lambda, arma::vec& beta, const double tau, 
-                      const int p, const double n1, const double h, const double h1, const double h2, const double phi0 = 0.01, const double gamma = 1.5, 
-                      const double epsilon = 0.001, const int iteMax = 500) {
-  arma::vec betaNew = beta;
-  arma::vec Lambda = cmptLambdaLasso(lambda, p);
-  double phi = phi0;
-  int ite = 0;
-  while (ite <= iteMax) {
-    ite++;
-    phi = lammSq(Z, Y, Lambda, betaNew, phi, tau, gamma, p, h, n1, h1, h2);
-    phi = std::max(phi0, phi / gamma);
-    if (arma::norm(betaNew - beta, "inf") <= epsilon) {
-      break;
-    }
-    beta = betaNew;
-  }
-  return betaNew;
-}
-
-// [[Rcpp::export]]
-arma::vec SqrLasso(const arma::mat& X, arma::vec Y, const double lambda, const double tau, const double h, const double phi0 = 0.01, 
-                   const double gamma = 1.5, const double epsilon = 0.001, const int iteMax = 500) {
+arma::vec GaussLasso(const arma::mat& X, arma::vec Y, const double lambda, const double tau, const double h, const double phi0 = 0.01, 
+                     const double gamma = 1.2, const double epsilon = 0.001, const int iteMax = 500) {
   const int n = X.n_rows, p = X.n_cols;
   const double h1 = 1.0 / h, h2 = 1.0 / (h * h);
   arma::rowvec mx = arma::mean(X, 0);
@@ -283,47 +266,26 @@ arma::vec SqrLasso(const arma::mat& X, arma::vec Y, const double lambda, const d
   arma::mat Z = arma::join_rows(arma::ones(n), standardize(X, mx, sx1, p));
   double my = arma::mean(Y);
   Y -= my;
-  arma::vec betaHat = sqrLasso(Z, Y, lambda, tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
+  arma::vec betaHat = gaussLasso(Z, Y, lambda, tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
   betaHat.rows(1, p) %= sx1;
   betaHat(0) += my - arma::as_scalar(mx * betaHat.rows(1, p));
   return betaHat;
 }
 
+// Codes for cross-validation
 // [[Rcpp::export]]
-arma::vec cvSqrLassoWarm(const arma::mat& X, arma::vec Y, const arma::vec& lambdaSeq, const arma::vec& folds, const double tau, const int kfolds, 
-                         const double h, const double phi0 = 0.01, const double gamma = 1.5, const double epsilon = 0.001, const int iteMax = 500) {
-  const int n = X.n_rows, p = X.n_cols, nlambda = lambdaSeq.size();
-  const double h1 = 1.0 / h, h2 = 1.0 / (h * h);
-  arma::vec betaHat(p + 1);
-  arma::vec mse = arma::zeros(nlambda);
-  arma::rowvec mx = arma::mean(X, 0);
-  arma::vec sx1 = 1.0 / arma::stddev(X, 0, 0).t();
-  arma::mat Z = arma::join_rows(arma::ones(n), standardize(X, mx, sx1, p));
-  double my = arma::mean(Y);
-  Y -= my;
-  for (int j = 1; j <= kfolds; j++) {
-    arma::uvec idx = arma::find(folds == j);
-    arma::uvec idxComp = arma::find(folds != j);
-    double n1Train = 1.0 / idxComp.size();
-    arma::mat trainZ = Z.rows(idxComp), testZ = Z.rows(idx);
-    arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
-    betaHat = sqrLasso(trainZ, trainY, lambdaSeq(0), tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-    mse(0) += arma::accu(lossGauss(testZ, testY, betaHat, tau, h, h1, h2));
-    for (int i = 1; i < nlambda; i++) {
-      betaHat = sqrLassoIni(trainZ, trainY, lambdaSeq(i), betaHat, tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossGauss(testZ, testY, betaHat, tau, h, h1, h2));
-    }
+double lossQr(const arma::mat& Z, const arma::vec& Y, const arma::vec& beta, const double tau) {
+  arma::vec res = Y - Z * beta;
+  double rst = 0.0;
+  for (int i = 0; i < res.size(); i++) {
+    rst += res(i) >= 0 ? tau * res(i) : (tau - 1) * res(i);
   }
-  arma::uword cvIdx = arma::index_min(mse);
-  betaHat = sqrLasso(Z, Y, lambdaSeq(cvIdx), tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
-  betaHat.rows(1, p) %= sx1;
-  betaHat(0) += my - arma::as_scalar(mx * betaHat.rows(1, p));
-  return betaHat;
+  return rst;
 }
 
 // [[Rcpp::export]]
-arma::vec cvSqrLasso(const arma::mat& X, arma::vec Y, const arma::vec& lambdaSeq, const arma::vec& folds, const double tau, const int kfolds, 
-                     const double h, const double phi0 = 0.01, const double gamma = 1.5, const double epsilon = 0.001, const int iteMax = 500) {
+Rcpp::List cvGaussLasso(const arma::mat& X, arma::vec Y, const arma::vec& lambdaSeq, const arma::vec& folds, const double tau, const int kfolds, 
+                        const double h, const double phi0 = 0.01, const double gamma = 1.2, const double epsilon = 0.001, const int iteMax = 500) {
   const int n = X.n_rows, p = X.n_cols, nlambda = lambdaSeq.size();
   const double h1 = 1.0 / h, h2 = 1.0 / (h * h);
   arma::vec betaHat(p + 1);
@@ -340,13 +302,13 @@ arma::vec cvSqrLasso(const arma::mat& X, arma::vec Y, const arma::vec& lambdaSeq
     arma::mat trainZ = Z.rows(idxComp), testZ = Z.rows(idx);
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
-      betaHat = sqrLasso(trainZ, trainY, lambdaSeq(i), tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossGauss(testZ, testY, betaHat, tau, h, h1, h2));
+      betaHat = gaussLasso(trainZ, trainY, lambdaSeq(i), tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
+      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
-  betaHat = sqrLasso(Z, Y, lambdaSeq(cvIdx), tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
+  betaHat = gaussLasso(Z, Y, lambdaSeq(cvIdx), tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
   betaHat.rows(1, p) %= sx1;
   betaHat(0) += my - arma::as_scalar(mx * betaHat.rows(1, p));
-  return betaHat;
+  return Rcpp::List::create(Rcpp::Named("coeff") = betaHat, Rcpp::Named("lambda") = lambdaSeq(cvIdx));
 }
