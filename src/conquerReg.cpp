@@ -245,19 +245,22 @@ double lammGuassGroupLasso(const arma::mat& Z, const arma::vec& Y, const double 
   arma::vec grad(p + 1);
   arma::vec gradReal(p + 1);
   double loss = updateGauss(Z, Y, beta, grad, gradReal, tau, n1, h, h1, h2);
+  std::cout << "loss: " << loss << std::endl;
   while (true) {
     arma::vec subNorm = arma::zeros(G);
     arma::vec betaNew = beta - gradReal / phiNew;
     for (int i = 1; i <= p; i++) {
       subNorm(group(i)) += betaNew(i) * betaNew(i);
     }
-    subNorm = arma::max(1.0 - lambda * weight / (phiNew * subNorm), arma::zeros(G));
+    subNorm = arma::max(1.0 - lambda * weight / (phiNew * arma::sqrt(subNorm)), arma::zeros(G));
     for (int i = 1; i <= p; i++) {
       betaNew(i) *= subNorm(group(i));
     }
     double fVal = lossGauss(Z, Y, betaNew, h, h1, h2);
+    std::cout << "fVal: " << fVal << std::endl;
     arma::vec diff = betaNew - beta;
     double psiVal = loss + arma::as_scalar(grad.t() * diff) + 0.5 * phiNew * arma::as_scalar(diff.t() * diff);
+    std::cout << "psiVal: " << psiVal << std::endl;
     if (fVal <= psiVal) {
       break;
     }
