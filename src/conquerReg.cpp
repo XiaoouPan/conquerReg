@@ -247,7 +247,7 @@ double lammGuassGroupLasso(const arma::mat& Z, const arma::vec& Y, const double 
   double loss = updateGauss(Z, Y, beta, grad, gradReal, tau, n1, h, h1, h2);
   while (true) {
     arma::vec subNorm = arma::zeros(G);
-    arma::vec betaNew = beta - gradReal / phiNew;
+    betaNew = beta - gradReal / phiNew;
     for (int i = 1; i <= p; i++) {
       subNorm(group(i)) += betaNew(i) * betaNew(i);
     }
