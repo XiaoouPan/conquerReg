@@ -268,6 +268,39 @@ double lammGuassGroupLasso(const arma::mat& Z, const arma::vec& Y, const double 
 }
 
 // [[Rcpp::export]]
+double lammGuassSparseGroupLasso(const arma::mat& Z, const arma::vec& Y, const arma::vec& Lambda, const double lambda, arma::vec& beta, const double tau, 
+                                 const arma::vec& group, const arma::vec& weight, const double phi, const double gamma, const int p, const int G, 
+                                 const double h, const double n1, const double h1, const double h2) {
+  double phiNew = phi;
+  arma::vec betaNew(p + 1);
+  arma::vec grad(p + 1);
+  arma::vec gradReal(p + 1);
+  double loss = updateGauss(Z, Y, beta, grad, gradReal, tau, n1, h, h1, h2);
+  while (true) {
+    arma::vec first = beta - gradReal / phiNew;
+    arma::vec second = Lambda / phiNew;
+    betaNew = softThresh(first, second, p);
+    arma::vec subNorm = arma::zeros(G);
+    for (int i = 1; i <= p; i++) {
+      subNorm(group(i)) += betaNew(i) * betaNew(i);
+    }
+    subNorm = arma::max(1.0 - lambda * weight / (phiNew * arma::sqrt(subNorm)), arma::zeros(G));
+    for (int i = 1; i <= p; i++) {
+      betaNew(i) *= subNorm(group(i));
+    }
+    double fVal = lossGauss(Z, Y, betaNew, h, h1, h2);
+    arma::vec diff = betaNew - beta;
+    double psiVal = loss + arma::as_scalar(grad.t() * diff) + 0.5 * phiNew * arma::as_scalar(diff.t() * diff);
+    if (fVal <= psiVal) {
+      break;
+    }
+    phiNew *= gamma;
+  }
+  beta = betaNew;
+  return phiNew;
+}
+
+// [[Rcpp::export]]
 arma::vec lasso(const arma::mat& Z, const arma::vec& Y, const double lambda, const double tau, const int p, const double n1, const double phi0 = 0.01, 
                 const double gamma = 1.2, const double epsilon = 0.001, const int iteMax = 500) {
   arma::vec beta = arma::zeros(p + 1);
