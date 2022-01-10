@@ -36,7 +36,7 @@ tau = 0.5
 beta0 = qt(tau, 2)
 h = 0.5 * (log(p) / n)^(1/4)
 Sigma = toeplitz(0.5^(0:(p - 1)))
-M = 5
+M = 1
 time = TPR = FPR = FDR = error = matrix(0, 4, M)
 
 pb = txtProgressBar(style = 3)
@@ -95,9 +95,9 @@ for (m in 1:M) {
   Sigma[21:p, 21:p] = toeplitz(0.5^(0:(p - s - 1)))
   X = mvrnorm(n, rep(0, p), Sigma)
   Y = X %*% beta + err
-  group = c(0, rep(0, 5), rep(1, 5), rep(2, 5), rep(3, 5), rep(4, 200), rep(5, 290))
+  group = c(0, rep(0, 5), rep(1, 5), rep(2, 5), rep(3, 5), rep(4, p - s))
   start = Sys.time()
-  fit.group.lasso = cvGaussGroupLasso(X, Y, lambdaSeq, folds, tau, kfolds, group = group, G = 6, h)
+  fit.group.lasso = cvGaussGroupLasso(X, Y, lambdaSeq, folds, tau, kfolds, group = group, G = 5, h)
   end = Sys.time()
   time[3, m] = as.numeric(difftime(end, start, units = "secs"))
   beta.group.lasso = as.numeric(fit.group.lasso$coeff)
@@ -112,7 +112,7 @@ for (m in 1:M) {
   betaMat = beta
   Y = X %*% beta + err
   start = Sys.time()
-  fit.sparse.group.lasso = cvGaussSparseGroupLasso(X, Y, lambdaSeq, folds, tau, kfolds, group = group, G = 6, h)
+  fit.sparse.group.lasso = cvGaussSparseGroupLasso(X, Y, lambdaSeq, folds, tau, kfolds, group = group, G = 5, h)
   end = Sys.time()
   time[4, m] = as.numeric(difftime(end, start, units = "secs"))
   beta.sparse.group.lasso = as.numeric(fit.sparse.group.lasso$coeff)
