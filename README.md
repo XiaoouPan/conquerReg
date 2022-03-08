@@ -8,3 +8,8 @@ High-dimensional sparse quantile regression with flexible penalties, including l
 This is a follow-up work of [He et al., 2022](https://doi.org/10.1016/j.jeconom.2021.07.010) and [Tan, Wang and Zhou, 2022](https://doi.org/10.1111/rssb.12485). 
 
 Algorithmically, all these methods can be flexibly implemented using iteratively reweighted *&ell;<sub>1</sub>*-penalization and a local minimize-majorize approximation.
+
+
+## Update 2022-03-05
+
+We are merging this repository with the [conquer](https://github.com/XiaoouPan/conquer) package.
