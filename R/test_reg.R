@@ -13,6 +13,7 @@ library(caret)
 library(rqPen)
 library(tikzDevice)
 library(ggplot2)
+library(glmnet)
 
 exam = function(betaMat, betaEst) {
   p = length(betaMat)
@@ -53,6 +54,18 @@ for (m in 1:M) {
   #beta = c(runif(s - 1, 1, 1.5), rep(0, p - s))
   #betaMat = c(beta0, beta)
   #Y = X[, 1] * err + X[, -1] %*% beta
+  
+  ## glmnet
+  start = Sys.time()
+  fit.glmnet = glmnet(X, Y, lambda = 0.05)
+  end = Sys.time()
+  as.numeric(difftime(end, start, units = "secs"))
+  
+  ## conquer
+  start = Sys.time()
+  fit.lasso = gaussLasso(cbind(1, X), Y, lambda = 0.05, tau, p, 1 / n, h, 1 / h, 1 / (h^2))
+  end = Sys.time()
+  as.numeric(difftime(end, start, units = "secs"))
   
   folds = createFolds(Y, kfolds, FALSE)
   U = matrix(runif(nsim * n), nsim, n)
