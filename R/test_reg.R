@@ -38,7 +38,7 @@ tau = 0.5
 beta0 = qt(tau, 2)
 h = 0.5 * (log(p) / n)^(1/4)
 Sigma = toeplitz(0.5^(0:(p - 1)))
-M = 1
+M = 2
 time = TPR = FPR = FDR = error = matrix(0, 4, M)
 
 pb = txtProgressBar(style = 3)
