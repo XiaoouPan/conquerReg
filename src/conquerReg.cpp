@@ -589,7 +589,7 @@ Rcpp::List cvGaussLasso(const arma::mat& X, arma::vec Y, const arma::vec& lambda
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
       betaHat = gaussLasso(trainZ, trainY, lambdaSeq(i), tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
+      mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
@@ -619,7 +619,7 @@ Rcpp::List cvGaussFusedLasso(const arma::mat& X, arma::vec Y, const arma::vec& l
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
       betaHat = gaussFusedLasso(trainZ, trainY, lambdaSeq(i), tau, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
+      mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
@@ -650,7 +650,7 @@ Rcpp::List cvGaussElastic(const arma::mat& X, arma::vec Y, const arma::vec& lamb
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
       betaHat = gaussElastic(trainZ, trainY, lambdaSeq(i), tau, alpha, p, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
+      mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
@@ -686,7 +686,7 @@ Rcpp::List cvGaussGroupLasso(const arma::mat& X, arma::vec Y, const arma::vec& l
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
       betaHat = gaussGroupLasso(trainZ, trainY, lambdaSeq(i), tau, group, weight, p, G, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
+      mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
@@ -722,7 +722,7 @@ Rcpp::List cvGaussSparseGroupLasso(const arma::mat& X, arma::vec Y, const arma::
     arma::vec trainY = Y.rows(idxComp), testY = Y.rows(idx);
     for (int i = 0; i < nlambda; i++) {
       betaHat = gaussSparseGroupLasso(trainZ, trainY, lambdaSeq(i), tau, group, weight, p, G, n1Train, h, h1, h2, phi0, gamma, epsilon, iteMax);
-      mse(i) += arma::accu(lossQr(testZ, testY, betaHat, tau));
+      mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
   arma::uword cvIdx = arma::index_min(mse);
