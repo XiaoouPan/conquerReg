@@ -592,11 +592,12 @@ Rcpp::List cvGaussLasso(const arma::mat& X, arma::vec Y, const arma::vec& lambda
       mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
+  mse /= n;
   arma::uword cvIdx = arma::index_min(mse);
   betaHat = gaussLasso(Z, Y, lambdaSeq(cvIdx), tau, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
   betaHat.rows(1, p) %= sx1;
   betaHat(0) += my - arma::as_scalar(mx * betaHat.rows(1, p));
-  return Rcpp::List::create(Rcpp::Named("coeff") = betaHat, Rcpp::Named("lambda") = lambdaSeq(cvIdx));
+  return Rcpp::List::create(Rcpp::Named("coeff") = betaHat, Rcpp::Named("lambda") = lambdaSeq(cvIdx), Rcpp::Named("deviance") = mse);
 }
 
 // [[Rcpp::export]]
@@ -653,11 +654,12 @@ Rcpp::List cvGaussElastic(const arma::mat& X, arma::vec Y, const arma::vec& lamb
       mse(i) += lossQr(testZ, testY, betaHat, tau);
     }
   }
+  mse /= n;
   arma::uword cvIdx = arma::index_min(mse);
   betaHat = gaussElastic(Z, Y, lambdaSeq(cvIdx), tau, alpha, p, 1.0 / n, h, h1, h2, phi0, gamma, epsilon, iteMax);
   betaHat.rows(1, p) %= sx1;
   betaHat(0) += my - arma::as_scalar(mx * betaHat.rows(1, p));
-  return Rcpp::List::create(Rcpp::Named("coeff") = betaHat, Rcpp::Named("lambda") = lambdaSeq(cvIdx));
+  return Rcpp::List::create(Rcpp::Named("coeff") = betaHat, Rcpp::Named("lambda") = lambdaSeq(cvIdx), Rcpp::Named("deviance") = mse);
 }
 
 // [[Rcpp::export]]
