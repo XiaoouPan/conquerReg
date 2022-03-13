@@ -1,12 +1,8 @@
 # include <RcppArmadillo.h>
 # include <cmath>
+# include "conquerHeader.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(cpp11)]]
-
-// [[Rcpp::export]]
-int sgn(const double x) {
-  return (x > 0) - (x < 0);
-}
 
 /*// [[Rcpp::export]]
 void updateUnif(const arma::mat& Z, const arma::vec& res, arma::vec& der, arma::vec& grad, const int n, const double tau, const double h, 
@@ -107,19 +103,6 @@ double sqLossTrian(const arma::vec& u, const int n, const double tau, const doub
   }
   return rst / n;
 }*/
-
-// [[Rcpp::export]]
-arma::mat standardize(arma::mat X, const arma::rowvec& mx, const arma::vec& sx1, const int p) {
-  for (int i = 0; i < p; i++) {
-    X.col(i) = (X.col(i) - mx(i)) * sx1(i);
-  }
-  return X;
-}
-
-// [[Rcpp::export]]
-arma::vec softThresh(const arma::vec& x, const arma::vec& Lambda, const int p) {
-  return arma::sign(x) % arma::max(arma::abs(x) - Lambda, arma::zeros(p + 1));
-}
 
 // Loss and gradient, update gradient, return loss
 // [[Rcpp::export]]
