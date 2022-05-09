@@ -10,6 +10,6 @@ This is a follow-up work of [He et al., 2022](https://doi.org/10.1016/j.jeconom.
 Algorithmically, all these methods can be flexibly implemented using iteratively reweighted *&ell;<sub>1</sub>*-penalization and a local minimize-majorize approximation.
 
 
-## Update 2022-03-05
+## Update 2022-03-20
 
-We are merging this repository with the [conquer](https://github.com/XiaoouPan/conquer) package.
+The functionalities of this repository have been merged into the [conquer](https://github.com/XiaoouPan/conquer) package.
